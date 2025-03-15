@@ -27,9 +27,9 @@ export class FakestoreService {
         `${this.baseUrl}/products`,
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to fetch products from FakeStore API: ${error.message}`,
+        `Failed to fetch products from FakeStore API: ${(error as Error).message}`,
       );
       throw new HttpException(
         'Failed to fetch products from external API',
@@ -48,12 +48,16 @@ export class FakestoreService {
         `${this.baseUrl}/products/${id}`,
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
-        `Failed to fetch product ${id} from FakeStore API: ${error.message}`,
+        `Failed to fetch product ${id} from FakeStore API: ${(error as Error).message}`,
       );
 
-      if (error.response?.status === 404) {
+      if (
+        axios.isAxiosError(error) &&
+        error.response &&
+        error.response.status === 404
+      ) {
         throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
       }
 

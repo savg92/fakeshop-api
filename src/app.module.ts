@@ -32,7 +32,7 @@ import { Product } from './products/entities/product.entity';
               }
             : false,
         entities: [Product],
-        synchronize: process.env.NODE_ENV !== 'production', // Automatic synchronization, disable in production
+        synchronize: process.env.NODE_ENV !== 'production',
         logging: process.env.NODE_ENV !== 'production',
       }),
     }),

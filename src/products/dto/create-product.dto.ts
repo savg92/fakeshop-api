@@ -5,16 +5,14 @@ import {
   IsUrl,
   IsNotEmpty,
   IsPositive,
-  IsOptional,
 } from 'class-validator';
 
 export class CreateProductDto {
-
   @ApiProperty({
     description: 'The title of the product',
     example: 'Product Name',
   })
-  @IsNotEmpty()
+  @IsNotEmpty
   @IsString()
   title: string;
 

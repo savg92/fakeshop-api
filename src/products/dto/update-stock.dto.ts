@@ -6,8 +6,8 @@ export class UpdateStockDto {
     description: 'The stock quantity of the product',
     example: 50,
   })
-  @IsNotEmpty()
-  @IsInt()
-  @Min(0)
+  @IsNotEmpty({ message: 'Stock should not be empty' })
+  @IsInt({})
+  @Min(0, {})
   stock: number;
 }

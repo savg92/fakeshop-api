@@ -6,7 +6,6 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configure global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -15,7 +14,6 @@ async function bootstrap() {
     }),
   );
 
-  // Configure Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('FakeShop API')
     .setDescription('A RESTful API for fake shop products')
@@ -25,7 +23,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // Start application
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
@@ -33,4 +30,6 @@ async function bootstrap() {
     `Swagger documentation is available at: http://localhost:${port}/api`,
   );
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('Error during bootstrap:', error);
+});

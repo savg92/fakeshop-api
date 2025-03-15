@@ -37,6 +37,10 @@ describe('ProductsController', () => {
     jest.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
     it('should return an array of products', async () => {
       const expectedProducts: Product[] = [
@@ -118,6 +122,33 @@ describe('ProductsController', () => {
       const result = await controller.create(createProductDto);
       expect(result).toBe(expectedProduct);
       expect(service.create).toHaveBeenCalledWith(createProductDto);
+    });
+
+    it('should create a new product', async () => {
+      // Setup
+      const createProductDto: CreateProductDto = {
+        title: 'Test Product',
+        price: 99.99,
+        description: 'Test Description',
+        category: 'Test Category',
+        image: 'https://test.com/image.jpg',
+      };
+      const expectedResult = {
+        id: 1000001,
+        ...createProductDto,
+        isLocal: true,
+        stock: 50,
+      };
+
+      // Type-safe mocking with explicit return type
+      jest.spyOn(service, 'create').mockResolvedValue(expectedResult as any);
+
+      // Execute
+      const result = await controller.create(createProductDto);
+
+      // Assert
+      expect(service.create).toHaveBeenCalledWith(createProductDto);
+      expect(result).toEqual(expectedResult);
     });
   });
 

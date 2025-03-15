@@ -104,27 +104,27 @@ export class ProductsService {
    */
   async create(createProductDto: CreateProductDto): Promise<Product> {
     try {
-      // First get ALL local products to find the highest current ID
+      // Step 1: Get highest local ID
       const localProducts = await this.productRepository.find({
         order: { id: 'DESC' },
         take: 10,
       });
 
-      // Get the highest local ID (if any)
-      const highestLocalId: number =
+      const highestLocalId =
         localProducts.length > 0
           ? Math.max(...localProducts.map((p) => p.id))
           : 0;
 
-      // Try to get products from the external API
+      // Step 2: Get highest external ID
       let highestExternalId = 0;
       try {
         const externalProducts = await this.fakestoreService.getAllProducts();
 
         if (externalProducts && externalProducts.length > 0) {
-          // Extract all valid numeric IDs from external products
+          // Type-safe extraction of valid numeric IDs
           const externalIds: number[] = externalProducts
             .map((p) => {
+              // Handle different ID types safely
               if (typeof p.id === 'number') return p.id;
               if (typeof p.id === 'string') {
                 const parsed = parseInt(p.id, 10);
@@ -148,13 +148,8 @@ export class ProductsService {
         // Continue with highestExternalId = 0
       }
 
-      // BASE_ID is a very large constant to ensure our IDs are clearly distinct
-      const BASE_ID = 1000000;
-
-      // Decide the final ID, ensuring it's:
-      // 1. At least BASE_ID
-      // 2. Higher than any existing local IDs
-      // 3. Much higher than any external IDs
+      // Step 3: Calculate final ID with safety margins
+      const BASE_ID = 1000000; // One million
       const finalId = Math.max(
         BASE_ID,
         highestLocalId + 1,
@@ -165,7 +160,7 @@ export class ProductsService {
         `Creating product with ID ${finalId} (highest local: ${highestLocalId}, highest external: ${highestExternalId})`,
       );
 
-      // Now create and save the product with our guaranteed high ID
+      // Step 4: Create and save product with explicit ID
       const product = this.productRepository.create({
         ...createProductDto,
         id: finalId,
@@ -173,14 +168,14 @@ export class ProductsService {
         isLocal: true,
       });
 
-      return this.productRepository.save(product);
+      return await this.productRepository.save(product);
     } catch (error) {
-      // If something unexpected happens, log it
+      // Handle errors with type safety
       this.logger.error(
         `Failed to create product: ${error instanceof Error ? error.message : String(error)}`,
       );
 
-      // Generate a fallback ID using current timestamp + random number for uniqueness
+      // Emergency fallback with even higher ID
       const timestamp = new Date().getTime();
       const random = Math.floor(Math.random() * 10000);
       const fallbackId = 2000000 + (timestamp % 1000000) + random;
@@ -194,8 +189,7 @@ export class ProductsService {
         isLocal: true,
       });
 
-      // Ensure we return the result of save() for type-safety
-      return this.productRepository.save(product);
+      return await this.productRepository.save(product);
     }
   }
 

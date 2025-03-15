@@ -6,7 +6,6 @@ import { AppService } from './app.service';
 import { ProductsModule } from './products/products.module';
 import { FakestoreModule } from './external/fakestore/fakestore.module';
 import configuration from './config/configuration';
-import { Product } from './products/entities/product.entity';
 
 @Module({
   imports: [
@@ -20,20 +19,19 @@ import { Product } from './products/entities/product.entity';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.database'),
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
         ssl:
-          process.env.DB_SSL_MODE === 'require'
+          configService.get<string>('DB_SSL_MODE') === 'require'
             ? {
                 rejectUnauthorized: false,
               }
             : false,
-        entities: [Product],
-        synchronize: process.env.NODE_ENV !== 'production',
-        logging: process.env.NODE_ENV !== 'production',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: configService.get<string>('NODE_ENV') !== 'production',
       }),
     }),
     ProductsModule,

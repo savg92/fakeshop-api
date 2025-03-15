@@ -12,7 +12,7 @@ export class CreateProductDto {
     description: 'The title of the product',
     example: 'Product Name',
   })
-  @IsNotEmpty
+  @IsNotEmpty()
   @IsString()
   title: string;
 

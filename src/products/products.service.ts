@@ -20,15 +20,11 @@ export class ProductsService {
    * Get all products combining local and FakeStore API data
    */
   async findAll(): Promise<Product[]> {
-    // Get products from FakeStore API
     const externalProducts = await this.fakestoreService.getAllProducts();
 
-    // Get all local products
     const localProducts = await this.productRepository.find();
 
-    // Map external products to Product entity and add random stock
     const mappedExternalProducts = externalProducts.map((extProduct) => {
-      // Check if we have this product locally
       const localProduct = localProducts.find(
         (local) => local.id === extProduct.id,
       );
@@ -45,18 +41,16 @@ export class ProductsService {
       product.description = extProduct.description;
       product.category = extProduct.category;
       product.image = extProduct.image;
-      product.stock = Math.floor(Math.random() * 100); // Random stock between 0 and 99
+      product.stock = Math.floor(Math.random() * 100);
       product.isLocal = false;
 
       return product;
     });
 
-    // Filter local products that are not in the external products list
     const uniqueLocalProducts = localProducts.filter(
       (local) => !mappedExternalProducts.some((ext) => ext.id === local.id),
     );
 
-    // Combine both arrays
     return [...mappedExternalProducts, ...uniqueLocalProducts];
   }
 
@@ -65,7 +59,6 @@ export class ProductsService {
    * @param id The product ID
    */
   async findOne(id: number): Promise<Product> {
-    // First check if we have the product locally
     const localProduct = await this.productRepository.findOne({
       where: { id },
     });
@@ -74,11 +67,9 @@ export class ProductsService {
       return localProduct;
     }
 
-    // If not found locally, get from FakeStore API
     try {
       const externalProduct = await this.fakestoreService.getProductById(id);
 
-      // Map external product to Product entity and add random stock
       const product = new Product();
       product.id = externalProduct.id;
       product.title = externalProduct.title;
@@ -86,7 +77,7 @@ export class ProductsService {
       product.description = externalProduct.description;
       product.category = externalProduct.category;
       product.image = externalProduct.image;
-      product.stock = Math.floor(Math.random() * 100); // Random stock between 0 and 99
+      product.stock = Math.floor(Math.random() * 100);
       product.isLocal = false;
 
       return product;
@@ -104,7 +95,6 @@ export class ProductsService {
    */
   async create(createProductDto: CreateProductDto): Promise<Product> {
     try {
-      // Step 1: Get highest local ID
       const localProducts = await this.productRepository.find({
         order: { id: 'DESC' },
         take: 10,
@@ -115,16 +105,13 @@ export class ProductsService {
           ? Math.max(...localProducts.map((p) => p.id))
           : 0;
 
-      // Step 2: Get highest external ID
       let highestExternalId = 0;
       try {
         const externalProducts = await this.fakestoreService.getAllProducts();
 
         if (externalProducts && externalProducts.length > 0) {
-          // Type-safe extraction of valid numeric IDs
           const externalIds: number[] = externalProducts
             .map((p) => {
-              // Handle different ID types safely
               if (typeof p.id === 'number') return p.id;
               if (typeof p.id === 'string') {
                 const parsed = parseInt(p.id, 10);
@@ -145,11 +132,9 @@ export class ProductsService {
         this.logger.warn(
           `Could not fetch external products: ${error instanceof Error ? error.message : String(error)}`,
         );
-        // Continue with highestExternalId = 0
       }
 
-      // Step 3: Calculate final ID with safety margins
-      const BASE_ID = 1000000; // One million
+      const BASE_ID = 1000000;
       const finalId = Math.max(
         BASE_ID,
         highestLocalId + 1,
@@ -160,7 +145,6 @@ export class ProductsService {
         `Creating product with ID ${finalId} (highest local: ${highestLocalId}, highest external: ${highestExternalId})`,
       );
 
-      // Step 4: Create and save product with explicit ID
       const product = this.productRepository.create({
         ...createProductDto,
         id: finalId,
@@ -170,12 +154,10 @@ export class ProductsService {
 
       return await this.productRepository.save(product);
     } catch (error) {
-      // Handle errors with type safety
       this.logger.error(
         `Failed to create product: ${error instanceof Error ? error.message : String(error)}`,
       );
 
-      // Emergency fallback with even higher ID
       const timestamp = new Date().getTime();
       const random = Math.floor(Math.random() * 10000);
       const fallbackId = 2000000 + (timestamp % 1000000) + random;
@@ -202,15 +184,12 @@ export class ProductsService {
     id: number,
     updateStockDto: UpdateStockDto,
   ): Promise<Product> {
-    // First check if we have the product locally
     const product = await this.productRepository.findOne({ where: { id } });
 
     if (!product) {
-      // If not found locally, we'll create it from the external API
       try {
         const externalProduct = await this.fakestoreService.getProductById(id);
 
-        // Create and save the product locally
         const newProduct = this.productRepository.create({
           id: externalProduct.id,
           title: externalProduct.title,
@@ -231,17 +210,14 @@ export class ProductsService {
       }
     }
 
-    // Update the stock
     product.stock = updateStockDto.stock;
     return this.productRepository.save(product);
   }
 
   /**
-   * Delete a product
    * @param id The product ID
    */
   async remove(id: number): Promise<void> {
-    // First check if we have the product locally
     const product = await this.productRepository.findOne({ where: { id } });
 
     if (!product) {

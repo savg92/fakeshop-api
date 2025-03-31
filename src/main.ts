@@ -6,6 +6,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
+import { TransformInterceptor } from './common/interceptor/transform.interceptor';
 
 async function bootstrap() {
   // Create a new NestJS application instance
@@ -19,6 +21,12 @@ async function bootstrap() {
       forbidNonWhitelisted: true, // Throw errors if non-whitelisted properties are present
     }),
   );
+
+  // Apply the global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Apply the global interceptor for standardized API responses
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   // Configure Swagger documentation
   const config = new DocumentBuilder()

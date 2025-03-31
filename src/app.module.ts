@@ -1,3 +1,7 @@
+/**
+ * Root module of the FakeShop API application.
+ * Configures global settings, database connection, and imports feature modules.
+ */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -9,11 +13,13 @@ import configuration from './config/configuration';
 
 @Module({
   imports: [
+    // Global configuration module setup
     ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configuration],
+      isGlobal: true, // Make configuration available throughout the app
+      load: [configuration], // Load custom configuration
       envFilePath: ['.env'],
     }),
+    // Database connection configuration
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,11 +37,12 @@ import configuration from './config/configuration';
               }
             : false,
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        synchronize: configService.get<string>('NODE_ENV') !== 'production', // Auto-sync database schema in non-prod
       }),
     }),
-    ProductsModule,
-    FakestoreModule,
+    // Feature modules
+    ProductsModule, // Handles product-related functionality
+    FakestoreModule, // Integration with external FakeStore API
   ],
   controllers: [AppController],
   providers: [AppService],

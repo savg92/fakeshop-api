@@ -1,19 +1,26 @@
+/**
+ * Entry point for the FakeShop API application.
+ * Sets up the NestJS application with global pipes, Swagger documentation, and starts the server.
+ */
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  // Create a new NestJS application instance
   const app = await NestFactory.create(AppModule);
 
+  // Set up global validation pipe for automatic request payload validation
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
+      whitelist: true, // Strip properties that do not have decorators
+      transform: true, // Automatically transform payloads to DTO instances
+      forbidNonWhitelisted: true, // Throw errors if non-whitelisted properties are present
     }),
   );
 
+  // Configure Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('FakeShop API')
     .setDescription('A RESTful API for fake shop products')
@@ -23,6 +30,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  // Start the server on the specified port
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
@@ -30,6 +38,8 @@ async function bootstrap() {
     `Swagger documentation is available at: http://localhost:${port}/api`,
   );
 }
+
+// Start the application and handle any bootstrap errors
 bootstrap().catch((error) => {
   console.error('Error during bootstrap:', error);
 });

@@ -1,3 +1,7 @@
+/**
+ * Service responsible for integration with the external FakeStore API.
+ * Handles all HTTP requests to the FakeStore API and provides error handling.
+ */
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -9,6 +13,7 @@ export class FakestoreService {
   private readonly baseUrl: string;
 
   constructor(private configService: ConfigService) {
+    // Initialize API URL from environment variables
     const apiUrl = this.configService.get<string>('externalApi.fakestoreUrl');
     if (!apiUrl) {
       throw new Error(
@@ -19,7 +24,9 @@ export class FakestoreService {
   }
 
   /**
-   * Get all products from FakeStore API
+   * Fetches all products from the FakeStore API.
+   * @returns Promise<FakestoreProductDto[]> Array of products from external API
+   * @throws HttpException if the API request fails
    */
   async getAllProducts(): Promise<FakestoreProductDto[]> {
     try {
@@ -39,8 +46,10 @@ export class FakestoreService {
   }
 
   /**
-   * Get a product by ID from FakeStore API
-   * @param id The product ID
+   * Fetches a specific product by ID from the FakeStore API.
+   * @param id The product ID to fetch
+   * @returns Promise<FakestoreProductDto> The product data from external API
+   * @throws HttpException if the product is not found or the request fails
    */
   async getProductById(id: number): Promise<FakestoreProductDto> {
     try {
@@ -53,6 +62,7 @@ export class FakestoreService {
         `Failed to fetch product ${id} from FakeStore API: ${(error as Error).message}`,
       );
 
+      // Handle 404 errors specifically
       if (
         axios.isAxiosError(error) &&
         error.response &&

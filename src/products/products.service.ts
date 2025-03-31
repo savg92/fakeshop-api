@@ -1,3 +1,7 @@
+/**
+ * Service handling all product-related business logic.
+ * Manages both local products and integration with external FakeStore API.
+ */
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,13 +21,18 @@ export class ProductsService {
   ) {}
 
   /**
-   * Get all products combining local and FakeStore API data
+   * Get all products by combining local database products with external FakeStore API products.
+   * For external products, generates random stock values if not found locally.
+   * @returns Promise<Product[]> Array of all products
    */
   async findAll(): Promise<Product[]> {
+    // Fetch products from external API
     const externalProducts = await this.fakestoreService.getAllProducts();
 
+    // Get local products from database
     const localProducts = await this.productRepository.find();
 
+    // Map external products, using local data if available
     const mappedExternalProducts = externalProducts.map((extProduct) => {
       const localProduct = localProducts.find(
         (local) => local.id === extProduct.id,
@@ -33,7 +42,7 @@ export class ProductsService {
         return localProduct;
       }
 
-      // Create a new product with random stock
+      // Create a new product with random stock if not found locally
       const product = new Product();
       product.id = extProduct.id;
       product.title = extProduct.title;
@@ -47,18 +56,23 @@ export class ProductsService {
       return product;
     });
 
+    // Filter local products that don't exist in external API
     const uniqueLocalProducts = localProducts.filter(
       (local) => !mappedExternalProducts.some((ext) => ext.id === local.id),
     );
 
+    // Combine external and unique local products
     return [...mappedExternalProducts, ...uniqueLocalProducts];
   }
 
   /**
-   * Get a product by ID combining local and FakeStore API data
-   * @param id The product ID
+   * Find a specific product by ID, checking both local database and external API.
+   * @param id The product ID to search for
+   * @returns Promise<Product> The found product
+   * @throws NotFoundException if product is not found in either source
    */
   async findOne(id: number): Promise<Product> {
+    // Check local database first
     const localProduct = await this.productRepository.findOne({
       where: { id },
     });
@@ -68,6 +82,7 @@ export class ProductsService {
     }
 
     try {
+      // If not found locally, check external API
       const externalProduct = await this.fakestoreService.getProductById(id);
 
       const product = new Product();
@@ -90,11 +105,14 @@ export class ProductsService {
   }
 
   /**
-   * Create a new product locally with a guaranteed high ID that won't conflict
-   * @param createProductDto The product data
+   * Create a new product in the local database with a guaranteed unique ID.
+   * Uses a high ID range to avoid conflicts with external API products.
+   * @param createProductDto The product data to create
+   * @returns Promise<Product> The created product
    */
   async create(createProductDto: CreateProductDto): Promise<Product> {
     try {
+      // Get highest local ID
       const localProducts = await this.productRepository.find({
         order: { id: 'DESC' },
         take: 10,
@@ -105,6 +123,7 @@ export class ProductsService {
           ? Math.max(...localProducts.map((p) => p.id))
           : 0;
 
+      // Get highest external ID to avoid conflicts
       let highestExternalId = 0;
       try {
         const externalProducts = await this.fakestoreService.getAllProducts();
@@ -134,6 +153,7 @@ export class ProductsService {
         );
       }
 
+      // Generate new ID with safe margin above existing IDs
       const BASE_ID = 1000000;
       const finalId = Math.max(
         BASE_ID,
@@ -145,6 +165,7 @@ export class ProductsService {
         `Creating product with ID ${finalId} (highest local: ${highestLocalId}, highest external: ${highestExternalId})`,
       );
 
+      // Create and save new product
       const product = this.productRepository.create({
         ...createProductDto,
         id: finalId,
@@ -158,6 +179,7 @@ export class ProductsService {
         `Failed to create product: ${error instanceof Error ? error.message : String(error)}`,
       );
 
+      // Emergency fallback ID generation if normal process fails
       const timestamp = new Date().getTime();
       const random = Math.floor(Math.random() * 10000);
       const fallbackId = 2000000 + (timestamp % 1000000) + random;
@@ -176,9 +198,12 @@ export class ProductsService {
   }
 
   /**
-   * Update the stock of a product
-   * @param id The product ID
-   * @param updateStockDto The stock data
+   * Update the stock quantity of a product. If the product doesn't exist locally,
+   * creates a new local copy from external API data with the updated stock.
+   * @param id The product ID to update
+   * @param updateStockDto The new stock data
+   * @returns Promise<Product> The updated product
+   * @throws NotFoundException if product doesn't exist in either source
    */
   async updateStock(
     id: number,
@@ -188,6 +213,7 @@ export class ProductsService {
 
     if (!product) {
       try {
+        // If not found locally, fetch from external API and create local copy
         const externalProduct = await this.fakestoreService.getProductById(id);
 
         const newProduct = this.productRepository.create({
@@ -210,12 +236,15 @@ export class ProductsService {
       }
     }
 
+    // Update and save existing product
     product.stock = updateStockDto.stock;
     return this.productRepository.save(product);
   }
 
   /**
-   * @param id The product ID
+   * Remove a product from the local database.
+   * @param id The product ID to remove
+   * @throws NotFoundException if product doesn't exist locally
    */
   async remove(id: number): Promise<void> {
     const product = await this.productRepository.findOne({ where: { id } });

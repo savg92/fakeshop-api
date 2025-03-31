@@ -1,3 +1,7 @@
+/**
+ * Controller handling all product-related HTTP endpoints.
+ * Provides REST API endpoints for managing products.
+ */
 import {
   Controller,
   Get,
@@ -21,6 +25,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  /**
+   * Retrieve all products from both local database and external API
+   * @returns Promise<Product[]> Array of all available products
+   */
   @Get()
   @ApiOperation({ summary: 'Get all products' })
   @ApiResponse({
@@ -32,6 +40,11 @@ export class ProductsController {
     return this.productsService.findAll();
   }
 
+  /**
+   * Retrieve a specific product by its ID
+   * @param id The product ID to retrieve
+   * @returns Promise<Product> The requested product
+   */
   @Get(':id')
   @ApiOperation({ summary: 'Get a product by ID' })
   @ApiParam({ name: 'id', description: 'Product ID' })
@@ -48,6 +61,11 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
+  /**
+   * Create a new product in the local database
+   * @param createProductDto The product data to create
+   * @returns Promise<Product> The created product
+   */
   @Post()
   @ApiOperation({ summary: 'Create a new product' })
   @ApiResponse({
@@ -63,6 +81,12 @@ export class ProductsController {
     return this.productsService.create(createProductDto);
   }
 
+  /**
+   * Update the stock quantity of a product
+   * @param id The product ID to update
+   * @param updateStockDto The new stock data
+   * @returns Promise<Product> The updated product
+   */
   @Put(':id/stock')
   @ApiOperation({ summary: 'Update product stock' })
   @ApiParam({ name: 'id', description: 'Product ID' })
@@ -82,6 +106,10 @@ export class ProductsController {
     return this.productsService.updateStock(id, updateStockDto);
   }
 
+  /**
+   * Delete a product from the local database
+   * @param id The product ID to delete
+   */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a product' })
